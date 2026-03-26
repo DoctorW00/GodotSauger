@@ -1,0 +1,50 @@
+; Engine configuration file.
+; It's best edited using the editor UI and not directly,
+; since the parameters that go here are not all obvious.
+;
+; Format:
+;   [section] ; section goes between []
+;   param=value ; assign values to parameters
+
+config_version=5
+
+[application]
+
+config/name="GodotSauger"
+config/version="1.0.0.0"
+run/main_scene="uid://bp1iq7w32uti1"
+config/features=PackedStringArray("4.6", "Forward Plus")
+boot_splash/bg_color=Color(1, 1, 1, 1)
+boot_splash/image="uid://bcihjrymjapfo"
+config/icon="uid://bcihjrymjapfo"
+config/macos_native_icon="res://icon.icns"
+config/windows_native_icon="res://icon.ico"
+
+[audio]
+
+buses/default_bus_layout="uid://ck0b03b1bgggh"
+
+[autoload]
+
+FtpClient="*uid://btquqb7bqs3ev"
+Extractor="*uid://dfr2prjln8oac"
+
+[debug]
+
+file_logging/enable_file_logging.pc=false
+
+[display]
+
+window/size/transparent=true
+window/stretch/mode="canvas_items"
+window/stretch/aspect="expand"
+mouse_cursor/custom_image="uid://cqwd3mx62ljq1"
+
+[physics]
+
+3d/physics_engine="Jolt Physics"
+
+[rendering]
+
+rendering_device/driver.windows="d3d12"
+textures/vram_compression/import_etc2_astc=true

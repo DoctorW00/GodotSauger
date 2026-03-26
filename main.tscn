@@ -1,0 +1,503 @@
+[gd_scene format=3 uid="uid://bp1iq7w32uti1"]
+
+[ext_resource type="Script" uid="uid://chfkdlomt2scp" path="res://main.gd" id="1_ig7tw"]
+[ext_resource type="PackedScene" uid="uid://7xgexea4ayh7" path="res://GodotSaugerText.glb" id="2_0xm2m"]
+[ext_resource type="Script" uid="uid://b6h7v8ma8vom4" path="res://omni_light_3d.gd" id="3_h2yge"]
+[ext_resource type="Script" uid="uid://dvoedexp8xis0" path="res://log_box_handle.gd" id="4_1bvp3"]
+[ext_resource type="Texture2D" uid="uid://bwk5o4k6vayt2" path="res://icons/folder_sw.png" id="4_lquwl"]
+[ext_resource type="Script" uid="uid://byu6f68xhpa1j" path="res://grafsauger_3d.gd" id="4_ycdy4"]
+[ext_resource type="Script" uid="uid://j7144cacyr36" path="res://camera_3d.gd" id="5_dg77c"]
+[ext_resource type="PackedScene" uid="uid://ccf2iji6gcrpx" path="res://grafsauger3d.glb" id="6_7mycd"]
+[ext_resource type="Texture2D" uid="uid://c2yymgu5nwi7" path="res://icons/settings.png" id="6_272bh"]
+[ext_resource type="Texture2D" uid="uid://c3ftiddu6k1hc" path="res://icons/search.png" id="6_efxa6"]
+[ext_resource type="Texture2D" uid="uid://y1d1nns2y8el" path="res://icons/backarrow.png" id="8_5vw27"]
+[ext_resource type="Texture2D" uid="uid://4n25msk8jj3h" path="res://icons/rar.png" id="9_4c57u"]
+[ext_resource type="Texture2D" uid="uid://cqbmn81cyd5qx" path="res://icons/7-Zip.png" id="10_efxa6"]
+
+[node name="GodotSauger" type="Node3D" unique_id=1760449315]
+script = ExtResource("1_ig7tw")
+
+[node name="GodotSaugerText" parent="." unique_id=38767251 instance=ExtResource("2_0xm2m")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.8338451, 0.4946612, -1.3925226)
+
+[node name="grafsauger3d" parent="." unique_id=577555436 instance=ExtResource("6_7mycd")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.050400045, -0.071965575, -1.5484517)
+script = ExtResource("4_ycdy4")
+
+[node name="OmniLight3D" type="OmniLight3D" parent="." unique_id=1565862079]
+light_color = Color(1, 0.80784315, 0.18039216, 1)
+shadow_enabled = true
+script = ExtResource("3_h2yge")
+
+[node name="EyeLeft" type="OmniLight3D" parent="." unique_id=1347735619]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.30182397, 0.30144238, -1.1142766)
+light_color = Color(1, 0, 0, 1)
+light_energy = 0.2
+omni_range = 0.04
+
+[node name="EyeRight" type="OmniLight3D" parent="." unique_id=696558486]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.054458544, 0.32544053, -0.9841527)
+light_color = Color(1, 0, 0, 1)
+light_energy = 0.2
+omni_range = 0.04
+
+[node name="Camera3D" type="Camera3D" parent="." unique_id=11858519]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 2)
+current = true
+script = ExtResource("5_dg77c")
+
+[node name="Control" type="Control" parent="." unique_id=270096937]
+custom_minimum_size = Vector2(0, 200)
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+metadata/_edit_use_anchors_ = true
+
+[node name="VBoxContainer" type="VBoxContainer" parent="Control" unique_id=1668300648]
+custom_minimum_size = Vector2(0, 200)
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="HBoxContainer2" type="HBoxContainer" parent="Control/VBoxContainer" unique_id=1561601261]
+layout_mode = 2
+
+[node name="Music" type="Button" parent="Control/VBoxContainer/HBoxContainer2" unique_id=1942076931]
+layout_mode = 2
+
+[node name="PathEdit" type="LineEdit" parent="Control/VBoxContainer/HBoxContainer2" unique_id=1635914033]
+layout_mode = 2
+size_flags_horizontal = 3
+editable = false
+context_menu_enabled = false
+emoji_menu_enabled = false
+shortcut_keys_enabled = false
+middle_mouse_paste_enabled = false
+selecting_enabled = false
+deselect_on_focus_loss_enabled = false
+drag_and_drop_selection_enabled = false
+virtual_keyboard_enabled = false
+
+[node name="PathDialog" type="Button" parent="Control/VBoxContainer/HBoxContainer2" unique_id=1380471153]
+custom_minimum_size = Vector2(35, 24)
+layout_mode = 2
+icon = ExtResource("4_lquwl")
+expand_icon = true
+
+[node name="xREL" type="Button" parent="Control/VBoxContainer/HBoxContainer2" unique_id=1198788229]
+custom_minimum_size = Vector2(35, 32)
+layout_mode = 2
+icon = ExtResource("6_efxa6")
+expand_icon = true
+
+[node name="Settings" type="Button" parent="Control/VBoxContainer/HBoxContainer2" unique_id=118269023]
+custom_minimum_size = Vector2(35, 35)
+layout_mode = 2
+icon = ExtResource("6_272bh")
+expand_icon = true
+
+[node name="LogBox" type="RichTextLabel" parent="Control/VBoxContainer" unique_id=126368692]
+custom_minimum_size = Vector2(0, 100)
+layout_mode = 2
+
+[node name="LogBoxHandle" type="Panel" parent="Control/VBoxContainer" unique_id=751381966]
+custom_minimum_size = Vector2(0, 10)
+layout_mode = 2
+script = ExtResource("4_1bvp3")
+
+[node name="HBoxContainer" type="HBoxContainer" parent="Control/VBoxContainer" unique_id=597955236]
+layout_mode = 2
+
+[node name="OpenSFDL" type="Button" parent="Control/VBoxContainer/HBoxContainer" unique_id=2020415979]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Open SFDL"
+
+[node name="StartDownload" type="Button" parent="Control/VBoxContainer/HBoxContainer" unique_id=294885741]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Start Download"
+
+[node name="OpenDownloadPath" type="Button" parent="Control/VBoxContainer/HBoxContainer" unique_id=899833394]
+custom_minimum_size = Vector2(35, 32)
+layout_mode = 2
+tooltip_text = "Open download folder ..."
+icon = ExtResource("4_lquwl")
+expand_icon = true
+
+[node name="HBoxContainer3" type="HBoxContainer" parent="Control/VBoxContainer" unique_id=1728683415]
+custom_minimum_size = Vector2(0, 30)
+layout_mode = 2
+
+[node name="DownloadTitle" type="RichTextLabel" parent="Control/VBoxContainer/HBoxContainer3" unique_id=1301412369]
+layout_mode = 2
+size_flags_horizontal = 3
+bbcode_enabled = true
+scroll_active = false
+shortcut_keys_enabled = false
+deselect_on_focus_loss_enabled = false
+drag_and_drop_selection_enabled = false
+
+[node name="DownloadTitleProgress" type="ProgressBar" parent="Control/VBoxContainer/HBoxContainer3" unique_id=794852728]
+custom_minimum_size = Vector2(220, 0)
+layout_mode = 2
+
+[node name="HBoxContainer4" type="HBoxContainer" parent="Control/VBoxContainer" unique_id=1675375788]
+custom_minimum_size = Vector2(0, 30)
+layout_mode = 2
+
+[node name="DownloadTitleInfo" type="RichTextLabel" parent="Control/VBoxContainer/HBoxContainer4" unique_id=1198969828]
+layout_mode = 2
+size_flags_horizontal = 3
+bbcode_enabled = true
+scroll_active = false
+
+[node name="Tree" type="Tree" parent="Control/VBoxContainer" unique_id=54957053]
+custom_minimum_size = Vector2(0, 200)
+layout_mode = 2
+size_flags_vertical = 3
+allow_search = false
+enable_recursive_folding = false
+enable_drag_unfolding = false
+hide_root = true
+select_mode = 1
+scroll_horizontal_enabled = false
+
+[node name="MusicPlayer" type="AudioStreamPlayer" parent="." unique_id=2051274036]
+
+[node name="PlaySounds" type="AudioStreamPlayer" parent="." unique_id=1198237687]
+
+[node name="Timer" type="Timer" parent="." unique_id=1805605616]
+
+[node name="TimerAutoDownloads" type="Timer" parent="." unique_id=1435526867]
+
+[node name="ControlSettings" type="Control" parent="." unique_id=1579937406]
+visible = false
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="VBoxContainer" type="VBoxContainer" parent="ControlSettings" unique_id=1093629481]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="HBoxContainer" type="HBoxContainer" parent="ControlSettings/VBoxContainer" unique_id=628767728]
+custom_minimum_size = Vector2(0, 30)
+layout_mode = 2
+
+[node name="SettingsBack" type="Button" parent="ControlSettings/VBoxContainer/HBoxContainer" unique_id=1745492907]
+custom_minimum_size = Vector2(35, 35)
+layout_mode = 2
+icon = ExtResource("8_5vw27")
+expand_icon = true
+
+[node name="Title" type="RichTextLabel" parent="ControlSettings/VBoxContainer/HBoxContainer" unique_id=1671271032]
+layout_mode = 2
+size_flags_horizontal = 3
+bbcode_enabled = true
+text = "[center][b][font_size=20]Settings[/font_size][/b][/center]"
+scroll_active = false
+shortcut_keys_enabled = false
+
+[node name="VBoxContainer2" type="VBoxContainer" parent="ControlSettings/VBoxContainer" unique_id=1466693921]
+layout_mode = 2
+
+[node name="Fullscreen" type="CheckButton" parent="ControlSettings/VBoxContainer/VBoxContainer2" unique_id=1476681338]
+layout_mode = 2
+text = "Fullscreen "
+
+[node name="AllSoundOff" type="CheckButton" parent="ControlSettings/VBoxContainer/VBoxContainer2" unique_id=58761242]
+layout_mode = 2
+text = "All sound effects off "
+
+[node name="HSeparator2" type="HSeparator" parent="ControlSettings/VBoxContainer/VBoxContainer2" unique_id=124701390]
+layout_mode = 2
+
+[node name="RemoveArchives" type="CheckButton" parent="ControlSettings/VBoxContainer/VBoxContainer2" unique_id=162654837]
+layout_mode = 2
+text = "Remove archives after extraction "
+
+[node name="VBoxContainer" type="VBoxContainer" parent="ControlSettings/VBoxContainer" unique_id=510751188]
+layout_mode = 2
+
+[node name="HBoxContainer2" type="HBoxContainer" parent="ControlSettings/VBoxContainer/VBoxContainer" unique_id=1421901134]
+layout_mode = 2
+
+[node name="ExtractorLocationLabel" type="Label" parent="ControlSettings/VBoxContainer/VBoxContainer/HBoxContainer2" unique_id=1639187609]
+layout_mode = 2
+text = " Extractor (UnRAR, 7zip): "
+
+[node name="OpenRAR" type="Button" parent="ControlSettings/VBoxContainer/VBoxContainer/HBoxContainer2" unique_id=260785061]
+custom_minimum_size = Vector2(35, 32)
+layout_mode = 2
+icon = ExtResource("9_4c57u")
+expand_icon = true
+
+[node name="Open7Zip" type="Button" parent="ControlSettings/VBoxContainer/VBoxContainer/HBoxContainer2" unique_id=570848901]
+custom_minimum_size = Vector2(35, 32)
+layout_mode = 2
+icon = ExtResource("10_efxa6")
+expand_icon = true
+
+[node name="ExtractorLocation" type="LineEdit" parent="ControlSettings/VBoxContainer/VBoxContainer/HBoxContainer2" unique_id=17292335]
+layout_mode = 2
+size_flags_horizontal = 3
+editable = false
+context_menu_enabled = false
+emoji_menu_enabled = false
+shortcut_keys_enabled = false
+middle_mouse_paste_enabled = false
+selecting_enabled = false
+deselect_on_focus_loss_enabled = false
+drag_and_drop_selection_enabled = false
+
+[node name="ExtractorLocationOpen" type="Button" parent="ControlSettings/VBoxContainer/VBoxContainer/HBoxContainer2" unique_id=31339935]
+custom_minimum_size = Vector2(35, 32)
+layout_mode = 2
+icon = ExtResource("4_lquwl")
+expand_icon = true
+
+[node name="ExtractorUse" type="CheckButton" parent="ControlSettings/VBoxContainer/VBoxContainer" unique_id=261201608]
+layout_mode = 2
+text = "Use Extractor"
+
+[node name="HSeparator3" type="HSeparator" parent="ControlSettings/VBoxContainer/VBoxContainer" unique_id=796109738]
+layout_mode = 2
+
+[node name="HBoxContainer" type="HBoxContainer" parent="ControlSettings/VBoxContainer/VBoxContainer" unique_id=1172249739]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="ControlSettings/VBoxContainer/VBoxContainer/HBoxContainer" unique_id=373163674]
+layout_mode = 2
+text = " MSAA (Multisample Anti-Aliasing) "
+
+[node name="MSAAButton" type="OptionButton" parent="ControlSettings/VBoxContainer/VBoxContainer/HBoxContainer" unique_id=2100779695]
+layout_mode = 2
+
+[node name="FXAAButton" type="CheckButton" parent="ControlSettings/VBoxContainer/VBoxContainer" unique_id=1288444496]
+layout_mode = 2
+text = "FXAA (Fast Approximate Anti-Aliasing) "
+
+[node name="TAAButton" type="CheckButton" parent="ControlSettings/VBoxContainer/VBoxContainer" unique_id=1956568231]
+layout_mode = 2
+text = "TAA (Temporal Anti-Aliasing) "
+
+[node name="HSeparator" type="HSeparator" parent="ControlSettings/VBoxContainer/VBoxContainer" unique_id=729524905]
+layout_mode = 2
+
+[node name="UseProxyButton" type="CheckButton" parent="ControlSettings/VBoxContainer/VBoxContainer" unique_id=371050878]
+layout_mode = 2
+text = "Use SOCKS5 Proxy "
+
+[node name="HBoxContainer3" type="HBoxContainer" parent="ControlSettings/VBoxContainer/VBoxContainer" unique_id=535141857]
+layout_mode = 2
+
+[node name="LabelProxyHost" type="RichTextLabel" parent="ControlSettings/VBoxContainer/VBoxContainer/HBoxContainer3" unique_id=1213361058]
+custom_minimum_size = Vector2(200, 32)
+layout_mode = 2
+text = " Proxy Host: "
+
+[node name="ProxyHost" type="LineEdit" parent="ControlSettings/VBoxContainer/VBoxContainer/HBoxContainer3" unique_id=1868438577]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="HBoxContainer4" type="HBoxContainer" parent="ControlSettings/VBoxContainer/VBoxContainer" unique_id=758377968]
+layout_mode = 2
+
+[node name="LabelProxyPort" type="RichTextLabel" parent="ControlSettings/VBoxContainer/VBoxContainer/HBoxContainer4" unique_id=722914484]
+custom_minimum_size = Vector2(200, 32)
+layout_mode = 2
+text = " Proxy Port: "
+
+[node name="ProxyPort" type="SpinBox" parent="ControlSettings/VBoxContainer/VBoxContainer/HBoxContainer4" unique_id=48077738]
+layout_mode = 2
+min_value = 1.0
+max_value = 65535.0
+value = 1.0
+
+[node name="HBoxContainer5" type="HBoxContainer" parent="ControlSettings/VBoxContainer/VBoxContainer" unique_id=1015310204]
+layout_mode = 2
+
+[node name="LabelProxyUser" type="RichTextLabel" parent="ControlSettings/VBoxContainer/VBoxContainer/HBoxContainer5" unique_id=1527993318]
+custom_minimum_size = Vector2(200, 32)
+layout_mode = 2
+text = " Proxy Username: "
+
+[node name="ProxyUser" type="LineEdit" parent="ControlSettings/VBoxContainer/VBoxContainer/HBoxContainer5" unique_id=897039258]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="HBoxContainer6" type="HBoxContainer" parent="ControlSettings/VBoxContainer/VBoxContainer" unique_id=1273128886]
+layout_mode = 2
+
+[node name="LabelProxyPass" type="RichTextLabel" parent="ControlSettings/VBoxContainer/VBoxContainer/HBoxContainer6" unique_id=1602565858]
+custom_minimum_size = Vector2(200, 32)
+layout_mode = 2
+text = " Proxy Password: "
+
+[node name="ProxyPass" type="LineEdit" parent="ControlSettings/VBoxContainer/VBoxContainer/HBoxContainer6" unique_id=1361360481]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="HSeparator2" type="HSeparator" parent="ControlSettings/VBoxContainer/VBoxContainer" unique_id=165373207]
+layout_mode = 2
+
+[node name="AutoDownloadButton" type="CheckButton" parent="ControlSettings/VBoxContainer/VBoxContainer" unique_id=2073389898]
+layout_mode = 2
+text = "Use auto download SFDL files "
+
+[node name="HBoxContainer8" type="HBoxContainer" parent="ControlSettings/VBoxContainer/VBoxContainer" unique_id=1562424962]
+layout_mode = 2
+
+[node name="AutoTimerLabel" type="RichTextLabel" parent="ControlSettings/VBoxContainer/VBoxContainer/HBoxContainer8" unique_id=1009783838]
+custom_minimum_size = Vector2(200, 32)
+layout_mode = 2
+text = " Auto download timer: "
+
+[node name="AutoTimer" type="SpinBox" parent="ControlSettings/VBoxContainer/VBoxContainer/HBoxContainer8" unique_id=1892828894]
+layout_mode = 2
+min_value = 10.0
+max_value = 3600.0
+value = 30.0
+
+[node name="HBoxContainer7" type="HBoxContainer" parent="ControlSettings/VBoxContainer/VBoxContainer" unique_id=1542399523]
+layout_mode = 2
+
+[node name="AutoDownloadLabel" type="RichTextLabel" parent="ControlSettings/VBoxContainer/VBoxContainer/HBoxContainer7" unique_id=1514517084]
+custom_minimum_size = Vector2(200, 32)
+layout_mode = 2
+text = " SFDL files: "
+
+[node name="AutoDownloadPath" type="LineEdit" parent="ControlSettings/VBoxContainer/VBoxContainer/HBoxContainer7" unique_id=1813731194]
+layout_mode = 2
+size_flags_horizontal = 3
+editable = false
+context_menu_enabled = false
+emoji_menu_enabled = false
+shortcut_keys_enabled = false
+middle_mouse_paste_enabled = false
+selecting_enabled = false
+deselect_on_focus_loss_enabled = false
+drag_and_drop_selection_enabled = false
+
+[node name="AutoDownloadPathButton" type="Button" parent="ControlSettings/VBoxContainer/VBoxContainer/HBoxContainer7" unique_id=1875405699]
+custom_minimum_size = Vector2(35, 32)
+layout_mode = 2
+icon = ExtResource("4_lquwl")
+expand_icon = true
+
+[node name="ControlWeb" type="Control" parent="." unique_id=1198866615]
+visible = false
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="ControlWeb" unique_id=1056662614]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="HBoxContainer2" type="HBoxContainer" parent="ControlWeb/VBoxContainer" unique_id=1097761759]
+layout_mode = 2
+
+[node name="xRELBack" type="Button" parent="ControlWeb/VBoxContainer/HBoxContainer2" unique_id=631668701]
+custom_minimum_size = Vector2(35, 32)
+layout_mode = 2
+icon = ExtResource("8_5vw27")
+expand_icon = true
+
+[node name="xRELTitle" type="RichTextLabel" parent="ControlWeb/VBoxContainer/HBoxContainer2" unique_id=1955059463]
+custom_minimum_size = Vector2(0, 35)
+layout_mode = 2
+size_flags_horizontal = 3
+bbcode_enabled = true
+text = "[center][b][font_size=20]xREL Search[/font_size][/b][/center]"
+
+[node name="HBoxContainer" type="HBoxContainer" parent="ControlWeb/VBoxContainer" unique_id=522592351]
+layout_mode = 2
+
+[node name="xRELSearch" type="LineEdit" parent="ControlWeb/VBoxContainer/HBoxContainer" unique_id=2108612191]
+layout_mode = 2
+size_flags_horizontal = 3
+placeholder_text = "Enter serach text ...."
+emoji_menu_enabled = false
+
+[node name="xRELSearchButton" type="Button" parent="ControlWeb/VBoxContainer/HBoxContainer" unique_id=1262726286]
+custom_minimum_size = Vector2(35, 32)
+layout_mode = 2
+icon = ExtResource("6_efxa6")
+expand_icon = true
+
+[node name="MarginContainer" type="MarginContainer" parent="ControlWeb/VBoxContainer" unique_id=411847014]
+layout_mode = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+
+[node name="xRELError" type="RichTextLabel" parent="ControlWeb/VBoxContainer/MarginContainer" unique_id=2063496544]
+visible = false
+custom_minimum_size = Vector2(0, 35)
+layout_mode = 2
+bbcode_enabled = true
+scroll_active = false
+shortcut_keys_enabled = false
+
+[node name="xRELTree" type="Tree" parent="ControlWeb/VBoxContainer" unique_id=1930212659]
+layout_mode = 2
+size_flags_vertical = 3
+allow_search = false
+hide_folding = true
+enable_recursive_folding = false
+enable_drag_unfolding = false
+hide_root = true
+select_mode = 1
+auto_tooltip = false
+
+[connection signal="pressed" from="Control/VBoxContainer/HBoxContainer2/Music" to="." method="_on_music_pressed"]
+[connection signal="pressed" from="Control/VBoxContainer/HBoxContainer2/PathDialog" to="." method="_on_path_dialog_pressed"]
+[connection signal="pressed" from="Control/VBoxContainer/HBoxContainer2/xREL" to="." method="_on_x_rel_pressed"]
+[connection signal="pressed" from="Control/VBoxContainer/HBoxContainer2/Settings" to="." method="_on_settings_pressed"]
+[connection signal="pressed" from="Control/VBoxContainer/HBoxContainer/OpenSFDL" to="." method="_on_open_sfdl_pressed"]
+[connection signal="pressed" from="Control/VBoxContainer/HBoxContainer/StartDownload" to="." method="_on_start_download_pressed"]
+[connection signal="pressed" from="Control/VBoxContainer/HBoxContainer/OpenDownloadPath" to="." method="_on_open_download_path_pressed"]
+[connection signal="pressed" from="ControlSettings/VBoxContainer/HBoxContainer/SettingsBack" to="." method="_on_settings_back_pressed"]
+[connection signal="toggled" from="ControlSettings/VBoxContainer/VBoxContainer2/Fullscreen" to="." method="_on_check_button_toggled"]
+[connection signal="toggled" from="ControlSettings/VBoxContainer/VBoxContainer2/AllSoundOff" to="." method="_on_all_sound_off_toggled"]
+[connection signal="toggled" from="ControlSettings/VBoxContainer/VBoxContainer2/RemoveArchives" to="." method="_on_remove_archives_toggled"]
+[connection signal="pressed" from="ControlSettings/VBoxContainer/VBoxContainer/HBoxContainer2/OpenRAR" to="." method="_on_open_rar_pressed"]
+[connection signal="pressed" from="ControlSettings/VBoxContainer/VBoxContainer/HBoxContainer2/Open7Zip" to="." method="_on_open_7_zip_pressed"]
+[connection signal="pressed" from="ControlSettings/VBoxContainer/VBoxContainer/HBoxContainer2/ExtractorLocationOpen" to="." method="_on_extractor_location_open_pressed"]
+[connection signal="toggled" from="ControlSettings/VBoxContainer/VBoxContainer/ExtractorUse" to="." method="_on_extractor_use_toggled"]
+[connection signal="toggled" from="ControlSettings/VBoxContainer/VBoxContainer/FXAAButton" to="." method="_on_fxaa_button_toggled"]
+[connection signal="toggled" from="ControlSettings/VBoxContainer/VBoxContainer/TAAButton" to="." method="_on_taa_button_toggled"]
+[connection signal="toggled" from="ControlSettings/VBoxContainer/VBoxContainer/UseProxyButton" to="." method="_on_use_proxy_button_toggled"]
+[connection signal="toggled" from="ControlSettings/VBoxContainer/VBoxContainer/AutoDownloadButton" to="." method="_on_auto_download_button_toggled"]
+[connection signal="value_changed" from="ControlSettings/VBoxContainer/VBoxContainer/HBoxContainer8/AutoTimer" to="." method="_on_auto_timer_value_changed"]
+[connection signal="pressed" from="ControlSettings/VBoxContainer/VBoxContainer/HBoxContainer7/AutoDownloadPathButton" to="." method="_on_auto_download_path_button_pressed"]
+[connection signal="pressed" from="ControlWeb/VBoxContainer/HBoxContainer2/xRELBack" to="." method="_on_x_rel_back_pressed"]
+[connection signal="text_submitted" from="ControlWeb/VBoxContainer/HBoxContainer/xRELSearch" to="." method="_on_x_rel_search_text_submitted"]
+[connection signal="pressed" from="ControlWeb/VBoxContainer/HBoxContainer/xRELSearchButton" to="." method="_on_x_rel_search_button_pressed"]
+[connection signal="item_activated" from="ControlWeb/VBoxContainer/xRELTree" to="." method="_on_x_rel_tree_item_activated"]
