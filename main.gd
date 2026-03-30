@@ -1,5 +1,7 @@
 extends Node3D
 
+var gs_version = str(ProjectSettings.get_setting("application/config/version"))
+
 var video_player : VideoStreamPlayer
 
 @onready var timer = $Timer
@@ -48,6 +50,7 @@ var settings_proxy_user = ""
 var settings_proxy_pass = ""
 
 var settings_auto_download = false
+var settings_auto_shutdown_pc = false
 var settings_auto_sfdl_path = ""
 var settings_auto_refresh_time = 30.0
 @onready var auto_sfdl_timer = $TimerAutoDownloads
@@ -74,6 +77,7 @@ var download_start_timestamp = 0
 var download_stop_timestamp = 0
 var download_seconds = 0
 var download_errors = 0
+var download_job_counter = 0
 
 var last_track_index : int = -1
 
@@ -83,6 +87,10 @@ var current_speed_bytes_per_sec = 0.0
 var speed_update_interval = 1.0
 var time_accumulator = 0.0
 
+var shutdown_dialog : ConfirmationDialog
+var countdown_timer : Timer
+var remaining_seconds : int = 30
+
 var playlist : Array[String] = [
 	"res://music/die-nudel.mp3",
 	"res://music/unfug.mp3",
@@ -90,7 +98,8 @@ var playlist : Array[String] = [
 	"res://music/die-shout-box.mp3",
 	"res://music/schwein-im-doener.mp3",
 	"res://music/der-rueckenkratzer.mp3",
-	"res://music/godot-sauger.mp3"
+	"res://music/godot-sauger.mp3",
+	"res://music/so-stirbt-man.mp3"
 ]
 
 var randsounds : Array[AudioStream] = [
@@ -106,8 +115,21 @@ var randsounds : Array[AudioStream] = [
 ]
 
 func _ready():
+	var args = OS.get_cmdline_args()
+	if args.size() > 0:
+		for arg in args:
+			if arg.get_extension().to_lower() == "sfdl":
+				_on_sfdl_file_selected(arg)
+				break
 	get_tree().get_root().files_dropped.connect(_on_files_dropped)
 	load_window_settings()
+	shutdown_dialog = ConfirmationDialog.new()
+	add_child(shutdown_dialog)
+	shutdown_dialog.title = "PC Shutdown"
+	shutdown_dialog.ok_button_text = "Shutdown Now"
+	shutdown_dialog.cancel_button_text = "Cancel"
+	shutdown_dialog.confirmed.connect(_on_shutdown_confirmed)
+	shutdown_dialog.canceled.connect(_on_shutdown_cancelled)
 	setup_msaa_button()
 	main_ui.visible = false
 	btn_settings.expand_icon = true
@@ -191,41 +213,41 @@ func _ready():
 			settings_fullscreen = config.get_value("Settings", "settings_fullscreen")
 			if settings_fullscreen:
 				DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
-				$ControlSettings/VBoxContainer/VBoxContainer2/Fullscreen.button_pressed = true
+				$ControlSettings/ScrollContainer/VBoxContainer/VBoxContainer2/Fullscreen.button_pressed = true
 			else:
-				$ControlSettings/VBoxContainer/VBoxContainer2/Fullscreen.button_pressed = false
+				$ControlSettings/ScrollContainer/VBoxContainer/VBoxContainer2/Fullscreen.button_pressed = false
 		
 		if config.has_section_key("Settings", "settings_allsoundoff"):
 			settings_allsoundoff = config.get_value("Settings", "settings_allsoundoff")
 			if settings_allsoundoff:
-				$ControlSettings/VBoxContainer/VBoxContainer2/AllSoundOff.button_pressed = true
+				$ControlSettings/ScrollContainer/VBoxContainer/VBoxContainer2/AllSoundOff.button_pressed = true
 				timer.stop()
 			else:
-				$ControlSettings/VBoxContainer/VBoxContainer2/AllSoundOff.button_pressed = false
+				$ControlSettings/ScrollContainer/VBoxContainer/VBoxContainer2/AllSoundOff.button_pressed = false
 		
 		if config.has_section_key("Settings", "extractor_remote_archives"):
 			settings_remove_archives = config.get_value("Settings", "extractor_remote_archives")
 			if settings_remove_archives:
-				$ControlSettings/VBoxContainer/VBoxContainer2/RemoveArchives.button_pressed = true
+				$ControlSettings/ScrollContainer/VBoxContainer/VBoxContainer2/RemoveArchives.button_pressed = true
 			else:
-				$ControlSettings/VBoxContainer/VBoxContainer2/RemoveArchives.button_pressed = false
+				$ControlSettings/ScrollContainer/VBoxContainer/VBoxContainer2/RemoveArchives.button_pressed = false
 		
 		if config.has_section_key("Settings", "extractor_path"):
 			settings_extractor_path = config.get_value("Settings", "extractor_path")
-			$ControlSettings/VBoxContainer/VBoxContainer/HBoxContainer2/ExtractorLocation.text = settings_extractor_path
+			$ControlSettings/ScrollContainer/VBoxContainer/VBoxContainer/HBoxContainer2/ExtractorLocation.text = settings_extractor_path
 		
 		if config.has_section_key("Settings", "extractor_use"):
 			settings_use_extractor = config.get_value("Settings", "extractor_use")
 			if settings_use_extractor:
-				$ControlSettings/VBoxContainer/VBoxContainer/ExtractorUse.button_pressed = true
+				$ControlSettings/ScrollContainer/VBoxContainer/VBoxContainer/ExtractorUse.button_pressed = true
 			else:
-				$ControlSettings/VBoxContainer/VBoxContainer/ExtractorUse.button_pressed = false
+				$ControlSettings/ScrollContainer/VBoxContainer/VBoxContainer/ExtractorUse.button_pressed = false
 		
 		if config.has_section_key("Settings", "msaa_val"):
 			var msaa_val = config.get_value("Settings", "msaa_level", 0)
 			get_viewport().msaa_3d = msaa_val
 			get_viewport().msaa_2d = msaa_val
-			$ControlSettings/VBoxContainer/VBoxContainer/HBoxContainer/MSAAButton.selected = msaa_val
+			$ControlSettings/ScrollContainer/VBoxContainer/VBoxContainer/HBoxContainer/MSAAButton.selected = msaa_val
 		
 		if config.has_section_key("Settings", "fxaa_enabled"):
 			var fxaa_on = config.get_value("Settings", "fxaa_enabled", false)
@@ -233,42 +255,42 @@ func _ready():
 				get_viewport().screen_space_aa = Viewport.SCREEN_SPACE_AA_FXAA
 			else:
 				get_viewport().screen_space_aa = Viewport.SCREEN_SPACE_AA_DISABLED
-			$ControlSettings/VBoxContainer/VBoxContainer/FXAAButton.button_pressed = fxaa_on
+			$ControlSettings/ScrollContainer/VBoxContainer/VBoxContainer/FXAAButton.button_pressed = fxaa_on
 		
 		if config.has_section_key("Settings", "taa_enabled"):
 			var taa_on = config.get_value("Settings", "taa_enabled", false)
 			get_viewport().use_taa = taa_on
-			$ControlSettings/VBoxContainer/VBoxContainer/TAAButton.button_pressed = taa_on
+			$ControlSettings/ScrollContainer/VBoxContainer/VBoxContainer/TAAButton.button_pressed = taa_on
 			check_render_compatibility()
 			
 		if config.has_section_key("Settings", "proxy_use"):
 			settings_proxy_use = config.get_value("Settings", "proxy_use")
 			if settings_proxy_use:
-				$ControlSettings/VBoxContainer/VBoxContainer/UseProxyButton.button_pressed = true
+				$ControlSettings/ScrollContainer/VBoxContainer/VBoxContainer/UseProxyButton.button_pressed = true
 			else:
-				$ControlSettings/VBoxContainer/VBoxContainer/UseProxyButton.button_pressed = false
+				$ControlSettings/ScrollContainer/VBoxContainer/VBoxContainer/UseProxyButton.button_pressed = false
 		
 		if config.has_section_key("Settings", "proxy_host"):
 			settings_proxy_host = config.get_value("Settings", "proxy_host")
 			if settings_proxy_host:
-				$ControlSettings/VBoxContainer/VBoxContainer/HBoxContainer3/ProxyHost.text = settings_proxy_host
+				$ControlSettings/ScrollContainer/VBoxContainer/VBoxContainer/HBoxContainer3/ProxyHost.text = settings_proxy_host
 				
 		if config.has_section_key("Settings", "proxy_port"):
 			settings_proxy_port = config.get_value("Settings", "proxy_port")
 			if settings_proxy_port is String:
-				$ControlSettings/VBoxContainer/VBoxContainer/HBoxContainer4/ProxyPort.value = settings_proxy_port.to_int()
+				$ControlSettings/ScrollContainer/VBoxContainer/VBoxContainer/HBoxContainer4/ProxyPort.value = settings_proxy_port.to_int()
 			else:
-				$ControlSettings/VBoxContainer/VBoxContainer/HBoxContainer4/ProxyPort.value = int(settings_proxy_port)
+				$ControlSettings/ScrollContainer/VBoxContainer/VBoxContainer/HBoxContainer4/ProxyPort.value = int(settings_proxy_port)
 				
 		if config.has_section_key("Settings", "proxy_user"):
 			settings_proxy_user = config.get_value("Settings", "proxy_user")
 			if settings_proxy_user:
-				$ControlSettings/VBoxContainer/VBoxContainer/HBoxContainer5/ProxyUser.text = settings_proxy_user
+				$ControlSettings/ScrollContainer/VBoxContainer/VBoxContainer/HBoxContainer5/ProxyUser.text = settings_proxy_user
 				
 		if config.has_section_key("Settings", "proxy_pass"):
 			settings_proxy_pass = config.get_value("Settings", "proxy_pass")
 			if settings_proxy_pass:
-				$ControlSettings/VBoxContainer/VBoxContainer/HBoxContainer6/ProxyPass.text = settings_proxy_pass
+				$ControlSettings/ScrollContainer/VBoxContainer/VBoxContainer/HBoxContainer6/ProxyPass.text = settings_proxy_pass
 		
 		var proxy_data = {
 			"use": settings_proxy_use,
@@ -282,26 +304,33 @@ func _ready():
 		if config.has_section_key("Settings", "auto_download"):
 			settings_auto_download = config.get_value("Settings", "auto_download")
 			if settings_auto_download:
-				$ControlSettings/VBoxContainer/VBoxContainer/AutoDownloadButton.button_pressed = true
+				$ControlSettings/ScrollContainer/VBoxContainer/VBoxContainer/AutoDownloadButton.button_pressed = true
 			else:
-				$ControlSettings/VBoxContainer/VBoxContainer/AutoDownloadButton.button_pressed = false
+				$ControlSettings/ScrollContainer/VBoxContainer/VBoxContainer/AutoDownloadButton.button_pressed = false
+				
+		if config.has_section_key("Settings", "auto_shutdown_pc"):
+			settings_auto_shutdown_pc = config.get_value("Settings", "auto_shutdown_pc")
+			if settings_auto_shutdown_pc:
+				$ControlSettings/ScrollContainer/VBoxContainer/VBoxContainer/AutoShutdownPCButton.button_pressed = true
+			else:
+				$ControlSettings/ScrollContainer/VBoxContainer/VBoxContainer/AutoShutdownPCButton.button_pressed = false
 		
 		if config.has_section_key("Settings", "auto_sfdl_path"):
 			settings_auto_sfdl_path = config.get_value("Settings", "auto_sfdl_path")
 			if settings_auto_sfdl_path:
-				$ControlSettings/VBoxContainer/VBoxContainer/HBoxContainer7/AutoDownloadPath.text = settings_auto_sfdl_path
+				$ControlSettings/ScrollContainer/VBoxContainer/VBoxContainer/HBoxContainer7/AutoDownloadPath.text = settings_auto_sfdl_path
 		else:
 			settings_auto_sfdl_path = OS.get_system_dir(OS.SYSTEM_DIR_DOWNLOADS)
 			if settings_auto_sfdl_path == "":
 				settings_auto_sfdl_path = OS.get_user_data_dir()
-			$ControlSettings/VBoxContainer/VBoxContainer/HBoxContainer7/AutoDownloadPath.text = settings_auto_sfdl_path
+			$ControlSettings/ScrollContainer/VBoxContainer/VBoxContainer/HBoxContainer7/AutoDownloadPath.text = settings_auto_sfdl_path
 				
 		if config.has_section_key("Settings", "auto_refresh_time"):
 			settings_auto_refresh_time = config.get_value("Settings", "auto_refresh_time")
 			if settings_auto_refresh_time is String:
-				$ControlSettings/VBoxContainer/VBoxContainer/HBoxContainer8/AutoTimer.value = settings_auto_refresh_time.to_int()
+				$ControlSettings/ScrollContainer/VBoxContainer/VBoxContainer/HBoxContainer8/AutoTimer.value = settings_auto_refresh_time.to_int()
 			else:
-				$ControlSettings/VBoxContainer/VBoxContainer/HBoxContainer8/AutoTimer.value = int(settings_auto_refresh_time)
+				$ControlSettings/ScrollContainer/VBoxContainer/VBoxContainer/HBoxContainer8/AutoTimer.value = int(settings_auto_refresh_time)
 		
 	else:
 		local_download_destination = OS.get_system_dir(OS.SYSTEM_DIR_DOWNLOADS)
@@ -318,7 +347,7 @@ func _ready():
 	log_box.bbcode_enabled = true
 	log_box.scroll_following = true
 	log_box.selection_enabled = true
-	add_log("System ready for Unfug!", "yellow")
+	add_log("GodotSauger (" + gs_version + ") ready for Unfug!", "yellow")
 	btn_start_download.disabled = true
 	$Control/VBoxContainer/HBoxContainer3.visible = false
 	$Control/VBoxContainer/HBoxContainer4.visible = false
@@ -467,6 +496,9 @@ func _start_main_app():
 	tween.tween_callback(func(): mouse_particles.emitting = true)
 	if OS.get_name() == "Android":
 		OS.request_permissions()
+	if settings_allsoundoff == false:
+		play_sound.stream = load("res://sounds/event_ready.mp3")
+		play_sound.play()
 
 func _process(_delta):
 	var m_pos = get_viewport().get_mouse_position()
@@ -484,6 +516,7 @@ func _process(_delta):
 		var bytes_since_last = current_total_bytes - last_check_bytes
 		current_speed_bytes_per_sec = bytes_since_last / time_accumulator
 		last_check_bytes = current_total_bytes
+		tree.queue_redraw()
 		time_accumulator = 0.0
 
 func _on_tree_draw():
@@ -495,7 +528,7 @@ func _on_tree_draw():
 	while current:
 		var rect = tree.get_item_area_rect(current, 2)
 		if rect.size.y > 0:
-			var bar_rect = rect.grow(-3) # Etwas mehr Padding für Rundungen
+			var bar_rect = rect.grow(-3)
 			var progress = current.get_metadata(2)
 			if progress is float or progress is int:
 				tree.draw_style_box(bg_style, bar_rect)
@@ -507,7 +540,7 @@ func _on_tree_draw():
 						tree.draw_style_box(error_style, fill_rect)
 					else:
 						tree.draw_style_box(fill_style, fill_rect)
-				var text = str(int(progress)) + "%"
+				var text = "%.2f%%" % progress
 				var text_pos = bar_rect.position + Vector2(0, bar_rect.size.y * 0.8)
 				tree.draw_string(font, text_pos, text, HORIZONTAL_ALIGNMENT_CENTER, bar_rect.size.x, font_size)
 		current = current.get_next_visible()
@@ -672,9 +705,8 @@ func _on_ftp_progress(file_name: String, current: int, total: int):
 	var percent = (float(current) / total) * 100.0 if total > 0 else 0.0
 	if item:
 		var old_percent = item.get_metadata(2)
-		if old_percent == null or int(old_percent) != int(percent):
+		if old_percent == null or not is_equal_approx(old_percent, percent):
 			item.set_metadata(2, percent)
-			tree.queue_redraw()
 	file_progress_bytes[file_name] = current
 	var sum_downloaded = 0
 	for val in file_progress_bytes.values():
@@ -758,6 +790,7 @@ func _check_all_finished():
 				download_size = 0
 				download_total_bytes = 0
 				download_errors = 0
+				download_job_counter += 1
 				_on_auto_timer_timeout() # auto downloads
 		else:
 			process_queue()
@@ -1122,7 +1155,7 @@ func _on_extractor_tool_selected(path: String) -> void:
 		add_log("[Extractor] Not a valid tool: " + path, "red")
 		return
 	settings_extractor_path = path
-	$ControlSettings/VBoxContainer/VBoxContainer/HBoxContainer2/ExtractorLocation.text = path
+	$ControlSettings/ScrollContainer/VBoxContainer/VBoxContainer/HBoxContainer2/ExtractorLocation.text = path
 	save_settings("extractor_path", settings_extractor_path)
 
 func _on_extractor_use_toggled(toggled_on: bool) -> void:
@@ -1133,7 +1166,7 @@ func _on_extractor_use_toggled(toggled_on: bool) -> void:
 	save_settings("extractor_use", toggled_on)
 
 func setup_msaa_button():
-	var btn = $ControlSettings/VBoxContainer/VBoxContainer/HBoxContainer/MSAAButton
+	var btn = $ControlSettings/ScrollContainer/VBoxContainer/VBoxContainer/HBoxContainer/MSAAButton
 	btn.add_item("MSAA Off", 0)
 	btn.add_item("MSAA 2x", 1)
 	btn.add_item("MSAA 4x", 2)
@@ -1153,7 +1186,7 @@ func _on_fxaa_button_toggled(toggled_on: bool) -> void:
 
 func _on_taa_button_toggled(toggled_on: bool) -> void:
 	if toggled_on:
-		$ControlSettings/VBoxContainer/VBoxContainer/FXAAButton.button_pressed = false
+		$ControlSettings/ScrollContainer/VBoxContainer/VBoxContainer/FXAAButton.button_pressed = false
 		_on_fxaa_button_toggled(false)
 	get_viewport().use_taa = toggled_on
 	if toggled_on:
@@ -1164,11 +1197,11 @@ func _on_taa_button_toggled(toggled_on: bool) -> void:
 func check_render_compatibility():
 	var current_renderer = ProjectSettings.get_setting("rendering/renderer/rendering_method")
 	if current_renderer == "gl_compatibility":
-		$ControlSettings/VBoxContainer/VBoxContainer/TAAButton.disabled = true
-		$ControlSettings/VBoxContainer/VBoxContainer/TAAButton.tooltip_text = "TAA disabled in compatibility mode (OpenGL)."
+		$ControlSettings/ScrollContainer/VBoxContainer/VBoxContainer/TAAButton.disabled = true
+		$ControlSettings/ScrollContainer/VBoxContainer/VBoxContainer/TAAButton.tooltip_text = "TAA disabled in compatibility mode (OpenGL)."
 		get_viewport().use_taa = false
 	else:
-		$ControlSettings/VBoxContainer/VBoxContainer/TAAButton.disabled = false
+		$ControlSettings/ScrollContainer/VBoxContainer/VBoxContainer/TAAButton.disabled = false
 
 func save_settings(settings_key: String, data: Variant):
 	var config = ConfigFile.new()
@@ -1201,17 +1234,17 @@ func _on_extractor_finished(success, output):
 func _on_use_proxy_button_toggled(toggled_on: bool) -> void:
 	if toggled_on:
 		settings_proxy_use = true
-		$ControlSettings/VBoxContainer/VBoxContainer/UseProxyButton.button_pressed = true
+		$ControlSettings/ScrollContainer/VBoxContainer/VBoxContainer/UseProxyButton.button_pressed = true
 	else:
 		settings_proxy_use = false
-		$ControlSettings/VBoxContainer/VBoxContainer/UseProxyButton.button_pressed = false
+		$ControlSettings/ScrollContainer/VBoxContainer/VBoxContainer/UseProxyButton.button_pressed = false
 	save_settings("proxy_use", toggled_on)
 	
 func save_all_proxy_fields():
-	var p_host = $ControlSettings/VBoxContainer/VBoxContainer/HBoxContainer3/ProxyHost.text
-	var p_port = int($ControlSettings/VBoxContainer/VBoxContainer/HBoxContainer4/ProxyPort.value)
-	var p_user = $ControlSettings/VBoxContainer/VBoxContainer/HBoxContainer5/ProxyUser.text
-	var p_pass = $ControlSettings/VBoxContainer/VBoxContainer/HBoxContainer6/ProxyPass.text
+	var p_host = $ControlSettings/ScrollContainer/VBoxContainer/VBoxContainer/HBoxContainer3/ProxyHost.text
+	var p_port = int($ControlSettings/ScrollContainer/VBoxContainer/VBoxContainer/HBoxContainer4/ProxyPort.value)
+	var p_user = $ControlSettings/ScrollContainer/VBoxContainer/VBoxContainer/HBoxContainer5/ProxyUser.text
+	var p_pass = $ControlSettings/ScrollContainer/VBoxContainer/VBoxContainer/HBoxContainer6/ProxyPass.text
 	settings_proxy_host = p_host.strip_edges()
 	save_settings("proxy_host", settings_proxy_host)
 	if p_port > 1 and p_port <= 65535:
@@ -1233,19 +1266,19 @@ func save_all_proxy_fields():
 # disable proxy settings / control while ftp is running
 func toggle_proxy_settings():
 	if active_downloads > 0:
-		$ControlSettings/VBoxContainer/VBoxContainer/UseProxyButton.disabled = true
-		$ControlSettings/VBoxContainer/VBoxContainer/HBoxContainer3/ProxyHost.editable = false
-		$ControlSettings/VBoxContainer/VBoxContainer/HBoxContainer4/ProxyPort.editable = false
-		$ControlSettings/VBoxContainer/VBoxContainer/HBoxContainer4/ProxyPort.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		$ControlSettings/VBoxContainer/VBoxContainer/HBoxContainer5/ProxyUser.editable = false
-		$ControlSettings/VBoxContainer/VBoxContainer/HBoxContainer6/ProxyPass.editable = false
+		$ControlSettings/ScrollContainer/VBoxContainer/VBoxContainer/UseProxyButton.disabled = true
+		$ControlSettings/ScrollContainer/VBoxContainer/VBoxContainer/HBoxContainer3/ProxyHost.editable = false
+		$ControlSettings/ScrollContainer/VBoxContainer/VBoxContainer/HBoxContainer4/ProxyPort.editable = false
+		$ControlSettings/ScrollContainer/VBoxContainer/VBoxContainer/HBoxContainer4/ProxyPort.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		$ControlSettings/ScrollContainer/VBoxContainer/VBoxContainer/HBoxContainer5/ProxyUser.editable = false
+		$ControlSettings/ScrollContainer/VBoxContainer/VBoxContainer/HBoxContainer6/ProxyPass.editable = false
 	else:
-		$ControlSettings/VBoxContainer/VBoxContainer/UseProxyButton.disabled = false
-		$ControlSettings/VBoxContainer/VBoxContainer/HBoxContainer3/ProxyHost.editable = true
-		$ControlSettings/VBoxContainer/VBoxContainer/HBoxContainer4/ProxyPort.editable = true
-		$ControlSettings/VBoxContainer/VBoxContainer/HBoxContainer4/ProxyPort.mouse_filter = Control.MOUSE_FILTER_STOP
-		$ControlSettings/VBoxContainer/VBoxContainer/HBoxContainer5/ProxyUser.editable = true
-		$ControlSettings/VBoxContainer/VBoxContainer/HBoxContainer6/ProxyPass.editable = true
+		$ControlSettings/ScrollContainer/VBoxContainer/VBoxContainer/UseProxyButton.disabled = false
+		$ControlSettings/ScrollContainer/VBoxContainer/VBoxContainer/HBoxContainer3/ProxyHost.editable = true
+		$ControlSettings/ScrollContainer/VBoxContainer/VBoxContainer/HBoxContainer4/ProxyPort.editable = true
+		$ControlSettings/ScrollContainer/VBoxContainer/VBoxContainer/HBoxContainer4/ProxyPort.mouse_filter = Control.MOUSE_FILTER_STOP
+		$ControlSettings/ScrollContainer/VBoxContainer/VBoxContainer/HBoxContainer5/ProxyUser.editable = true
+		$ControlSettings/ScrollContainer/VBoxContainer/VBoxContainer/HBoxContainer6/ProxyPass.editable = true
 
 func _on_x_rel_search_text_submitted(new_text: String) -> void:
 	if not new_text.strip_edges().is_empty():
@@ -1311,11 +1344,11 @@ func _on_auto_download_button_toggled(toggled_on: bool) -> void:
 		if not auto_sfdl_timer.is_stopped():
 			auto_sfdl_timer.stop()
 		auto_sfdl_timer.start(settings_auto_refresh_time)
-		$ControlSettings/VBoxContainer/VBoxContainer/AutoDownloadButton.button_pressed = true
+		$ControlSettings/ScrollContainer/VBoxContainer/VBoxContainer/AutoDownloadButton.button_pressed = true
 	else:
 		settings_auto_download = false
 		auto_sfdl_timer.stop()
-		$ControlSettings/VBoxContainer/VBoxContainer/AutoDownloadButton.button_pressed = false
+		$ControlSettings/ScrollContainer/VBoxContainer/VBoxContainer/AutoDownloadButton.button_pressed = false
 	save_settings("auto_download", toggled_on)
 
 func _on_auto_timer_value_changed(value: float) -> void:
@@ -1354,7 +1387,7 @@ func _on_auto_download_path_selected(dir: String):
 	if dir == "" or not DirAccess.dir_exists_absolute(dir):
 		return
 	settings_auto_sfdl_path = dir
-	$ControlSettings/VBoxContainer/VBoxContainer/HBoxContainer7/AutoDownloadPath.text = settings_auto_sfdl_path
+	$ControlSettings/ScrollContainer/VBoxContainer/VBoxContainer/HBoxContainer7/AutoDownloadPath.text = settings_auto_sfdl_path
 	save_settings("auto_sfdl_path", settings_auto_sfdl_path)
 
 func get_sfdl_file_from_path(folder_path: String):
@@ -1376,6 +1409,9 @@ func get_sfdl_file_from_path(folder_path: String):
 	if not oldest_file == "":
 		add_log("[AUTO] Next: " + oldest_file.get_file(), "orange")
 		_on_sfdl_file_selected(oldest_file)
+	else:
+		if download_job_counter > 0:
+			start_shutdown_sequence() # shutdown pc
 
 func rename_to_hidden(file_path: String) -> Error:
 	if file_path == "" or not FileAccess.file_exists(file_path):
@@ -1393,7 +1429,90 @@ func _on_x_rel_tree_item_activated() -> void:
 	var url = selected_item.get_metadata(0)
 	if url and url.begins_with("http"):
 		OS.shell_open(url)
-	
+
+func _on_auto_shutdown_pc_button_toggled(toggled_on: bool) -> void:
+	if toggled_on:
+		var platform = OS.get_name()
+		var success = false
+		match platform:
+			"macOS":
+				success = check_mac_permissions()
+			"Linux", "FreeBSD":
+				success = check_linux_permissions()
+			"Windows":
+				success = true
+		if success:
+			add_log("[AUTO] (Shutdown PC) PC will shutdown after the last download!", "green")
+			$ControlSettings/ScrollContainer/VBoxContainer/VBoxContainer/AutoShutdownPCButton.button_pressed = true
+			save_settings("auto_shutdown_pc", true)
+		else:
+			add_log("[AUTO] (Shutdown PC) No system permission!", "red")
+			$ControlSettings/ScrollContainer/VBoxContainer/VBoxContainer/AutoShutdownPCButton.button_pressed = false
+			save_settings("auto_shutdown_pc", false)
+	else:
+		$ControlSettings/ScrollContainer/VBoxContainer/VBoxContainer/AutoShutdownPCButton.button_pressed = false
+		save_settings("auto_shutdown_pc", false)
+
+func check_mac_permissions() -> bool:
+	var output = []
+	var exit_code = OS.execute("osascript", ["-e", "tell application \"System Events\" to get name"], output, true)
+	return exit_code == 0
+
+func check_linux_permissions() -> bool:
+	var output = []
+	var exit_code = OS.execute("bash", ["-c", "command -v systemctl && systemctl can-poweroff"], output, true)
+	if exit_code == 0 and output.size() > 0 and output[0].strip_edges() == "yes":
+		return true
+	return false
+
+func shutdown_pc():
+	var os_name = OS.get_name()
+	var command = ""
+	var args = []
+	match os_name:
+		"Windows":
+			command = "shutdown"
+			args = ["/s", "/t", "0"]
+		"macOS":
+			command = "osascript"
+			args = ["-e", "tell application \"System Events\" to shut down"]
+		"Linux", "FreeBSD":
+			command = "shutdown"
+			args = ["now"]
+	if command != "":
+		OS.execute(command, args, [], false)
+		
+func start_shutdown_sequence():
+	remaining_seconds = 30
+	update_dialog_text()
+	DisplayServer.window_request_attention()
+	DisplayServer.window_move_to_foreground()
+	shutdown_dialog.popup_centered()
+	run_countdown()
+
+func run_countdown():
+	while remaining_seconds > 0 and shutdown_dialog.visible:
+		update_dialog_text()
+		await get_tree().create_timer(1.0).timeout
+		if not shutdown_dialog.visible:
+			return
+		remaining_seconds -= 1
+		if remaining_seconds <= 0:
+			_on_shutdown_confirmed()
+
+func update_dialog_text():
+	shutdown_dialog.dialog_text = "System will shutdown in\n\n" + str(remaining_seconds) + "\n\nseconds!"
+
+func _on_shutdown_confirmed():
+	shutdown_dialog.hide()
+	add_log("[AUTO] (Shutdown PC): Your system will shotdown now!", "blue")
+	shutdown_pc()
+
+func _on_shutdown_cancelled():
+	shutdown_dialog.hide()
+	add_log("[AUTO] (Shutdown PC): User abort! System will -NOT- shutdown.", "green")
+	remaining_seconds = -1
+
 func _cleanup_and_quit():
 	FtpClient.abort_all = true
 	await get_tree().create_timer(0.2).timeout
