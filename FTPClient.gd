@@ -63,14 +63,68 @@ func _threaded_list_logic(args: Dictionary):
 	if res.begins_with("230"):
 		log_requested.emit.call_deferred("[FTP] (LIST) 230 Login OK. CWD: " + args.path)
 		_send_cmd(l_socket, "CWD " + args.path)
-		_wait_response(l_socket)
-		var items = _get_listing_internal(l_socket, args.host, args.path)
-		log_requested.emit.call_deferred("[FTP] (LIST) Done. %d Elements found." % items.size(), "green")
-		ftp_ready.emit.call_deferred(items)
+		var cwd_res = _wait_response(l_socket)
+		if cwd_res.begins_with("250"):
+			var items = _get_listing_internal(l_socket, args.host, args.path)
+			log_requested.emit.call_deferred("[FTP] (LIST) Done. %d Elements found." % items.size(), "green")
+			ftp_ready.emit.call_deferred(items)
+		else:
+			log_requested.emit.call_deferred("[FTP] (LIST) CWD Fehler: " + cwd_res, "red")
+			ftp_status_message.emit.call_deferred("Pfad nicht gefunden!")
+			ftp_ready.emit.call_deferred([])
 	else:
 		log_requested.emit.call_deferred("[FTP] (LIST) Login error: " + res, "red")
 		ftp_status_message.emit.call_deferred("Login Error")
 	close_any_socket(l_socket, "LIST", false)
+
+func _get_listing_internal(ctrl_socket: StreamPeerTCP, host: String, current_path: String) -> Array:
+	if current_path == "": current_path = "/"
+	_send_cmd(ctrl_socket, "CWD " + current_path)
+	_wait_response(ctrl_socket)
+	_send_cmd(ctrl_socket, "PASV")
+	var pasv_res = _wait_response(ctrl_socket)
+	var data_port = parse_pasv_port(pasv_res)
+	if data_port == -1: return []
+	var d_socket = _open_data_connection_via_proxy(pasv_res, host)
+	if d_socket == null:
+		log_requested.emit.call_deferred("[FTP] (LIST) Data Connection failed!", "red")
+		return []
+	while d_socket.get_status() == StreamPeerTCP.STATUS_CONNECTING:
+		d_socket.poll()
+		OS.delay_msec(5)
+	var all_items = []
+	if d_socket.get_status() == StreamPeerTCP.STATUS_CONNECTED:
+		_send_cmd(ctrl_socket, "LIST")
+		_wait_response(ctrl_socket)
+		var raw = ""
+		while true:
+			d_socket.poll()
+			var status = d_socket.get_status()
+			if status == StreamPeerTCP.STATUS_CONNECTED or status == StreamPeerTCP.STATUS_ERROR:
+				var av = d_socket.get_available_bytes()
+				if av > 0:
+					raw += d_socket.get_utf8_string(av)
+			if status == StreamPeerTCP.STATUS_NONE or status == StreamPeerTCP.STATUS_ERROR:
+				break
+			OS.delay_msec(1)
+		d_socket.disconnect_from_host()
+		_wait_response(ctrl_socket)
+		var current_level_items = parse_ftp_listing(raw)
+		for item in current_level_items:
+			if item.name == "." or item.name == "..":
+				continue
+			var full_path = current_path
+			if not full_path.ends_with("/"): full_path += "/"
+			full_path += item.name
+			item["path"] = full_path
+			all_items.append(item)
+			if item.is_dir:
+				log_requested.emit.call_deferred("[FTP] (LIST) Recursive path: " + full_path)
+				var sub_items = _get_listing_internal(ctrl_socket, host, full_path)
+				all_items.append_array(sub_items)
+				_send_cmd(ctrl_socket, "CWD " + current_path)
+				_wait_response(ctrl_socket)
+	return all_items
 
 func start_ftp_download(host: String, port: int, user: String, password: String, remote_file: String, local_file: String):
 	if abort_all:
@@ -140,56 +194,6 @@ func _threaded_download_logic(args: Dictionary):
 				thread_control.put_data("QUIT\r\n".to_utf8_buffer())
 				thread_control.poll()
 			thread_control.disconnect_from_host()
-
-func _get_listing_internal(ctrl_socket: StreamPeerTCP, host: String, current_path: String) -> Array:
-	if current_path == "": current_path = "/"
-	_send_cmd(ctrl_socket, "CWD " + current_path)
-	_wait_response(ctrl_socket)
-	_send_cmd(ctrl_socket, "PASV")
-	var pasv_res = _wait_response(ctrl_socket)
-	var data_port = parse_pasv_port(pasv_res)
-	if data_port == -1: return []
-	var d_socket = _open_data_connection_via_proxy(pasv_res, host)
-	if d_socket == null:
-		log_requested.emit.call_deferred("[FTP] (LIST) Data Connection failed!", "red")
-		return []
-	while d_socket.get_status() == StreamPeerTCP.STATUS_CONNECTING:
-		d_socket.poll()
-		OS.delay_msec(5)
-	var all_items = []
-	if d_socket.get_status() == StreamPeerTCP.STATUS_CONNECTED:
-		_send_cmd(ctrl_socket, "LIST")
-		_wait_response(ctrl_socket)
-		var raw = ""
-		while true:
-			d_socket.poll()
-			var status = d_socket.get_status()
-			if status == StreamPeerTCP.STATUS_CONNECTED or status == StreamPeerTCP.STATUS_ERROR:
-				var av = d_socket.get_available_bytes()
-				if av > 0:
-					raw += d_socket.get_utf8_string(av)
-			if status == StreamPeerTCP.STATUS_NONE or status == StreamPeerTCP.STATUS_ERROR:
-				break
-			OS.delay_msec(1)
-		d_socket.disconnect_from_host()
-		_wait_response(ctrl_socket)
-		var current_level_items = parse_ftp_listing(raw)
-		for item in current_level_items:
-			if item.name == "." or item.name == "..":
-				continue
-			var full_path = current_path
-			if not full_path.ends_with("/"): full_path += "/"
-			full_path += item.name
-			item["path"] = full_path
-			all_items.append(item)
-			if item.is_dir:
-				log_requested.emit.call_deferred("[FTP] (LIST) Recursive path: " + full_path)
-				var sub_items = _get_listing_internal(ctrl_socket, host, full_path)
-				all_items.append_array(sub_items)
-				_send_cmd(ctrl_socket, "CWD " + current_path)
-				_wait_response(ctrl_socket)
-				
-	return all_items
 
 func _do_actual_download(ctrl_socket: StreamPeerTCP, host: String, remote: String, local: String):
 	if abort_all or not is_instance_valid(self):

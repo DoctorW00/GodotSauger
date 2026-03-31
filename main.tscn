@@ -232,6 +232,27 @@ text = "Fullscreen "
 layout_mode = 2
 text = "All sound effects off "
 
+[node name="HSeparator3" type="HSeparator" parent="ControlSettings/ScrollContainer/VBoxContainer/VBoxContainer2" unique_id=696262781]
+layout_mode = 2
+
+[node name="WebserverButton" type="CheckButton" parent="ControlSettings/ScrollContainer/VBoxContainer/VBoxContainer2" unique_id=300266782]
+layout_mode = 2
+text = "Webserver"
+
+[node name="HBoxContainer" type="HBoxContainer" parent="ControlSettings/ScrollContainer/VBoxContainer/VBoxContainer2" unique_id=1589596646]
+layout_mode = 2
+
+[node name="WebserverPortLabel" type="RichTextLabel" parent="ControlSettings/ScrollContainer/VBoxContainer/VBoxContainer2/HBoxContainer" unique_id=122829429]
+custom_minimum_size = Vector2(200, 32)
+layout_mode = 2
+text = " Webserver Port: "
+
+[node name="WebserverPort" type="SpinBox" parent="ControlSettings/ScrollContainer/VBoxContainer/VBoxContainer2/HBoxContainer" unique_id=598399537]
+layout_mode = 2
+min_value = 1.0
+max_value = 65535.0
+value = 8080.0
+
 [node name="HSeparator2" type="HSeparator" parent="ControlSettings/ScrollContainer/VBoxContainer/VBoxContainer2" unique_id=124701390]
 layout_mode = 2
 
@@ -495,6 +516,7 @@ auto_tooltip = false
 [connection signal="pressed" from="ControlSettings/ScrollContainer/VBoxContainer/HBoxContainer/SettingsBack" to="." method="_on_settings_back_pressed"]
 [connection signal="toggled" from="ControlSettings/ScrollContainer/VBoxContainer/VBoxContainer2/Fullscreen" to="." method="_on_check_button_toggled"]
 [connection signal="toggled" from="ControlSettings/ScrollContainer/VBoxContainer/VBoxContainer2/AllSoundOff" to="." method="_on_all_sound_off_toggled"]
+[connection signal="toggled" from="ControlSettings/ScrollContainer/VBoxContainer/VBoxContainer2/WebserverButton" to="." method="_on_webserver_button_toggled"]
 [connection signal="toggled" from="ControlSettings/ScrollContainer/VBoxContainer/VBoxContainer2/RemoveArchives" to="." method="_on_remove_archives_toggled"]
 [connection signal="pressed" from="ControlSettings/ScrollContainer/VBoxContainer/VBoxContainer/HBoxContainer2/OpenRAR" to="." method="_on_open_rar_pressed"]
 [connection signal="pressed" from="ControlSettings/ScrollContainer/VBoxContainer/VBoxContainer/HBoxContainer2/Open7Zip" to="." method="_on_open_7_zip_pressed"]

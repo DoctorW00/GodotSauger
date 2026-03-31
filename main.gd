@@ -4,6 +4,9 @@ var gs_version = str(ProjectSettings.get_setting("application/config/version"))
 
 var video_player : VideoStreamPlayer
 
+const HttpServer = preload("res://WebServer.gd")
+var web_server: Node
+
 @onready var timer = $Timer
 @onready var music_player = $MusicPlayer
 @onready var play_sound = $PlaySounds
@@ -42,6 +45,9 @@ var settings_allsoundoff = false
 var settings_remove_archives = false
 var settings_extractor_path = ""
 var settings_use_extractor = false
+
+var settings_webserver_run = false
+var settings_webserver_port = 8080
 
 var settings_proxy_use = false
 var settings_proxy_host = ""
@@ -224,6 +230,20 @@ func _ready():
 				timer.stop()
 			else:
 				$ControlSettings/ScrollContainer/VBoxContainer/VBoxContainer2/AllSoundOff.button_pressed = false
+				
+		if config.has_section_key("Settings", "webserver_port"):
+			settings_webserver_port = config.get_value("Settings", "webserver_port")
+			if settings_webserver_port is String:
+				$ControlSettings/ScrollContainer/VBoxContainer/VBoxContainer2/HBoxContainer/WebserverPort.value = settings_webserver_port.to_int()
+			else:
+				$ControlSettings/ScrollContainer/VBoxContainer/VBoxContainer2/HBoxContainer/WebserverPort.value = int(settings_webserver_port)
+		
+		if config.has_section_key("Settings", "webserver_run"):
+			settings_webserver_run = config.get_value("Settings", "webserver_run")
+			if settings_webserver_run:
+				$ControlSettings/ScrollContainer/VBoxContainer/VBoxContainer2/WebserverButton.button_pressed = true
+			else:
+				$ControlSettings/ScrollContainer/VBoxContainer/VBoxContainer2/WebserverButton.button_pressed = false
 		
 		if config.has_section_key("Settings", "extractor_remote_archives"):
 			settings_remove_archives = config.get_value("Settings", "extractor_remote_archives")
@@ -656,31 +676,35 @@ func _on_ftp_list_received(items: Array):
 	if not root:
 		root = tree.create_item()
 	download_size = 0
-	for item in items:
-		if item.get("is_dir", false):
-			continue
-		var tree_item = tree.create_item(root)
-		download_size += item.size
-		tree_item.set_text(1, item.size_human)
-		tree_item.set_text_alignment(1, HORIZONTAL_ALIGNMENT_RIGHT)
-		tree_item.set_cell_mode(2, TreeItem.CELL_MODE_CUSTOM)
-		tree_item.set_metadata(2, 0.0)
-		tree_item.set_text(3, "Ready")
-		tree_item.set_metadata(0, item)
-		file_items[item.name] = tree_item
-		file_progress_bytes[item.name] = 0
-		var relative_sub_path = compare_paths(item.path)
-		tree_item.set_text(0, relative_sub_path)
-		var dest_file = local_download_destination.path_join(sfdl_description).path_join(relative_sub_path)
-		is_local_file_complete(dest_file, item.path, item.size)
-	download_title.text = "[b]" + sfdl_description + "[/b]"
-	download_title_info.text = "Size: [color=green]" + FtpClient.format_file_size(download_size) + "[/color]"
-	btn_start_download.disabled = false
-	if settings_allsoundoff == false:
-		play_sound.stream = load("res://sounds/event_ready4donwload.mp3")
-		play_sound.play()
-	if settings_auto_download:
-		_on_start_download_pressed()
+	if not items.is_empty():
+		for item in items:
+			if item.get("is_dir", false):
+				continue
+			var tree_item = tree.create_item(root)
+			download_size += item.size
+			tree_item.set_text(1, item.size_human)
+			tree_item.set_text_alignment(1, HORIZONTAL_ALIGNMENT_RIGHT)
+			tree_item.set_cell_mode(2, TreeItem.CELL_MODE_CUSTOM)
+			tree_item.set_metadata(2, 0.0)
+			tree_item.set_text(3, "Ready")
+			tree_item.set_metadata(0, item)
+			file_items[item.name] = tree_item
+			file_progress_bytes[item.name] = 0
+			var relative_sub_path = compare_paths(item.path)
+			tree_item.set_text(0, relative_sub_path)
+			var dest_file = local_download_destination.path_join(sfdl_description).path_join(relative_sub_path)
+			is_local_file_complete(dest_file, item.path, item.size)
+		download_title.text = "[b]" + sfdl_description + "[/b]"
+		download_title_info.text = "Size: [color=green]" + FtpClient.format_file_size(download_size) + "[/color]"
+		btn_start_download.disabled = false
+		if settings_allsoundoff == false:
+			play_sound.stream = load("res://sounds/event_ready4donwload.mp3")
+			play_sound.play()
+		if settings_auto_download:
+			_on_start_download_pressed()
+	else:
+		$Control/VBoxContainer/HBoxContainer3.visible = false
+		$Control/VBoxContainer/HBoxContainer4.visible = false
 
 func is_local_file_complete(local: String, path: String, total: int):	
 	var current = 0
@@ -1241,6 +1265,9 @@ func _on_use_proxy_button_toggled(toggled_on: bool) -> void:
 	save_settings("proxy_use", toggled_on)
 	
 func save_all_proxy_fields():
+	var www_port = int($ControlSettings/ScrollContainer/VBoxContainer/VBoxContainer/HBoxContainer4/ProxyPort.value)
+	settings_webserver_port = www_port
+	save_settings("webserver_port", settings_webserver_port)
 	var p_host = $ControlSettings/ScrollContainer/VBoxContainer/VBoxContainer/HBoxContainer3/ProxyHost.text
 	var p_port = int($ControlSettings/ScrollContainer/VBoxContainer/VBoxContainer/HBoxContainer4/ProxyPort.value)
 	var p_user = $ControlSettings/ScrollContainer/VBoxContainer/VBoxContainer/HBoxContainer5/ProxyUser.text
@@ -1411,7 +1438,8 @@ func get_sfdl_file_from_path(folder_path: String):
 		_on_sfdl_file_selected(oldest_file)
 	else:
 		if download_job_counter > 0:
-			start_shutdown_sequence() # shutdown pc
+			if settings_auto_shutdown_pc:
+				start_shutdown_sequence() # shutdown pc
 
 func rename_to_hidden(file_path: String) -> Error:
 	if file_path == "" or not FileAccess.file_exists(file_path):
@@ -1512,6 +1540,42 @@ func _on_shutdown_cancelled():
 	shutdown_dialog.hide()
 	add_log("[AUTO] (Shutdown PC): User abort! System will -NOT- shutdown.", "green")
 	remaining_seconds = -1
+	settings_auto_shutdown_pc = false
+	$ControlSettings/ScrollContainer/VBoxContainer/VBoxContainer/AutoShutdownPCButton.button_pressed = false
+	save_settings("auto_shutdown_pc", false)
+
+func webserver_start():
+	web_server = HttpServer.new()
+	web_server.log_requested.connect(add_log)
+	web_server.port = 8080
+	if local_download_destination.is_empty():
+		local_download_destination = OS.get_system_dir(OS.SYSTEM_DIR_DOWNLOADS)
+		if local_download_destination == "":
+			local_download_destination = OS.get_user_data_dir()
+	web_server.upload_dir = local_download_destination
+	add_child(web_server)
+	
+func webserver_stop():
+	if web_server:
+		web_server.stop_server()
+		web_server.queue_free()
+		
+func _on_webserver_button_toggled(toggled_on: bool) -> void:
+	if toggled_on:
+		settings_webserver_run = true
+		$ControlSettings/ScrollContainer/VBoxContainer/VBoxContainer2/WebserverButton.button_pressed = true
+		$ControlSettings/ScrollContainer/VBoxContainer/VBoxContainer/HBoxContainer4/ProxyPort.editable = false
+		$ControlSettings/ScrollContainer/VBoxContainer/VBoxContainer/HBoxContainer4/ProxyPort.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		webserver_start()
+	else:
+		settings_webserver_run = true
+		$ControlSettings/ScrollContainer/VBoxContainer/VBoxContainer/HBoxContainer4/ProxyPort.editable = true
+		$ControlSettings/ScrollContainer/VBoxContainer/VBoxContainer/HBoxContainer4/ProxyPort.mouse_filter = Control.MOUSE_FILTER_STOP
+		$ControlSettings/ScrollContainer/VBoxContainer/VBoxContainer2/WebserverButton.button_pressed = false
+		webserver_stop()
+	var www_port = int($ControlSettings/ScrollContainer/VBoxContainer/VBoxContainer/HBoxContainer4/ProxyPort.value)
+	save_settings("webserver_run", toggled_on)
+	save_settings("webserver_port", www_port)
 
 func _cleanup_and_quit():
 	FtpClient.abort_all = true
