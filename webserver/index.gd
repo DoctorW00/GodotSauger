@@ -16,7 +16,6 @@ const HTML = """<!DOCTYPE html>
 		.success { background: #2e7d32; color: #fff; }
 		.error { background: #c62828; color: #fff; }
 		
-		/* Styles für die Log-Box */
 		#logConsole {
 			margin-top: 30px;
 			background: #000;
@@ -49,7 +48,6 @@ const HTML = """<!DOCTYPE html>
 	</div>
 
 	<script>
-		// --- Bestehende Upload Logik ---
 		const form = document.getElementById('uploadForm');
 		const messageDiv = document.getElementById('message');
 		const submitBtn = document.getElementById('submitBtn');
@@ -87,17 +85,14 @@ const HTML = """<!DOCTYPE html>
 			});
 		});
 
-		// --- NEU: SSE Log Streaming Logik ---
 		const logConsole = document.getElementById('logConsole');
 		const eventSource = new EventSource('/logs');
 
 		eventSource.onmessage = function(event) {
 			const entry = document.createElement('div');
 			entry.className = 'log-entry';
-			entry.innerHTML = event.data; // Erwartet HTML vom Server
+			entry.innerHTML = event.data;
 			logConsole.appendChild(entry);
-			
-			// Auto-Scroll nach unten
 			logConsole.scrollTop = logConsole.scrollHeight;
 		};
 
