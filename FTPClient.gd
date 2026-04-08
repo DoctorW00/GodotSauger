@@ -310,12 +310,13 @@ func _wait_response(s: StreamPeerTCP) -> String:
 func parse_ftp_listing(raw_data: String) -> Array:
 	var items = []
 	var regex_unix = RegEx.new()
-	regex_unix.compile("^([dl\\-])[rwx\\-]{9}\\s+\\d+\\s+\\w+\\s+\\w+\\s+(\\d+)\\s+(\\w{3}\\s+\\d+\\s+[\\d:]+)\\s+(.*)$")
+	regex_unix.compile("^([dl\\-])[rwx\\-]{9}[\\s\\d]+?\\s+(\\d+)\\s+(\\w{3}\\s+\\d+\\s+[\\d:]+)\\s+(.*)$")
 	var regex_win = RegEx.new()
 	regex_win.compile("^(\\d{2}-\\d{2}-\\d{2})\\s+(\\d{2}:\\d{2}[AP]M)\\s+(<DIR>|\\d+)\\s+(.*)$")
 	for line in raw_data.split("\n"):
 		line = line.strip_edges()
-		if line == "": continue
+		if line == "": 
+			continue
 		if line.length() >= 3 and line.substr(0, 3).is_valid_int():
 			var parts = line.split(" ")
 			if parts.size() > 0 and parts[0].length() == 3:
@@ -324,7 +325,7 @@ func parse_ftp_listing(raw_data: String) -> Array:
 		if res_unix:
 			var s = res_unix.get_string(2).to_int()
 			var item = {
-				"name": res_unix.get_string(4),
+				"name": res_unix.get_string(4).strip_edges(),
 				"size": s,
 				"is_dir": res_unix.get_string(1) == "d",
 				"size_human": format_file_size(s),
@@ -337,9 +338,8 @@ func parse_ftp_listing(raw_data: String) -> Array:
 			var size_or_dir = res_win.get_string(3)
 			var is_dir = size_or_dir == "<DIR>"
 			var s = 0 if is_dir else size_or_dir.to_int()
-			
 			var item = {
-				"name": res_win.get_string(4),
+				"name": res_win.get_string(4).strip_edges(),
 				"size": s,
 				"is_dir": is_dir,
 				"size_human": "DIR" if is_dir else format_file_size(s),
@@ -347,7 +347,7 @@ func parse_ftp_listing(raw_data: String) -> Array:
 			}
 			items.append(item)
 			continue
-		log_requested.emit.call_deferred("[FTP] (LIST) Unknown: " + line)
+		log_requested.emit.call_deferred("[FTP] (LIST) Unknown format: " + line)
 	return items
 
 func format_file_size(bytes: int) -> String:

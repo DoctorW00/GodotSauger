@@ -11,9 +11,11 @@ config_version=5
 [application]
 
 config/name="GodotSauger"
-config/version="1.0.0.1"
+config/version="1.0.0.3"
 run/main_scene="uid://bp1iq7w32uti1"
+run/print_header=false
 config/features=PackedStringArray("4.6", "Forward Plus")
+run/load_shell_environment=true
 boot_splash/bg_color=Color(1, 1, 1, 1)
 boot_splash/image="uid://bcihjrymjapfo"
 config/icon="uid://bcihjrymjapfo"

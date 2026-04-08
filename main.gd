@@ -105,7 +105,8 @@ var playlist : Array[String] = [
 	"res://music/schwein-im-doener.mp3",
 	"res://music/der-rueckenkratzer.mp3",
 	"res://music/godot-sauger.mp3",
-	"res://music/so-stirbt-man.mp3"
+	"res://music/so-stirbt-man.mp3",
+	"res://music/der-geier.mp3"
 ]
 
 var randsounds : Array[AudioStream] = [
@@ -127,6 +128,11 @@ func _ready():
 			if arg.get_extension().to_lower() == "sfdl":
 				_on_sfdl_file_selected(arg)
 				break
+	#print(" ")
+	#print("========================================")
+	#print("   GodotSauger v" + gs_version)
+	#print("========================================")
+	print_welcome_banner()
 	get_tree().get_root().files_dropped.connect(_on_files_dropped)
 	load_window_settings()
 	shutdown_dialog = ConfirmationDialog.new()
@@ -182,7 +188,7 @@ func _ready():
 	main_ui.offset_left = 10
 	main_ui.offset_top = 10
 	main_ui.offset_right = -10
-	main_ui.offset_bottom = -10
+	main_ui.offset_bottom = -5
 	main_ui_original_pos = main_ui.position
 	settings_ui.offset_left = 10
 	settings_ui.offset_top = 10
@@ -352,6 +358,11 @@ func _ready():
 			else:
 				$ControlSettings/ScrollContainer/VBoxContainer/VBoxContainer/HBoxContainer8/AutoTimer.value = int(settings_auto_refresh_time)
 		
+		if config.has_section_key("Settings", "keep_screen_on"):
+			var is_keep_screen_on = config.get_value("Settings", "keep_screen_on")
+			if is_keep_screen_on:
+				$ControlSettings/ScrollContainer/VBoxContainer/VBoxContainer2/MobileKeepScreenOn.button_pressed = true
+		
 	else:
 		local_download_destination = OS.get_system_dir(OS.SYSTEM_DIR_DOWNLOADS)
 		if local_download_destination == "":
@@ -448,6 +459,8 @@ func _ready():
 	mouse_particles.top_level = true
 	mouse_particles.z_index = 100
 	music_player.finished.connect(_play_random_song)
+	$ControlSettings/ScrollContainer/VBoxContainer/VBoxContainer2/MobileKeepScreenOn.log_requested.connect(add_log)
+	$ControlSettings/ScrollContainer/VBoxContainer/VBoxContainer2/MobileKeepScreenOn.save_requested.connect(save_settings)
 	FtpClient.ftp_status_message.connect(_on_ftp_status_msg)
 	FtpClient.ftp_ready.connect(_on_ftp_list_received)
 	FtpClient.download_started.connect(_on_ftp_started)
@@ -476,7 +489,7 @@ func _notification(what):
 	if what == NOTIFICATION_APPLICATION_RESUMED:
 		if OS.get_name() == "Android":
 			if not OS.get_granted_permissions().has("android.permission.WRITE_EXTERNAL_STORAGE"):
-				add_log("[Android] Need write premissio!n", "red")
+				add_log("[Android] Need write premission!", "red")
 				var permissions = OS.get_granted_permissions()
 				add_log("[Android] Premissions: " + permissions, "magenta")
 	if what == NOTIFICATION_WM_CLOSE_REQUEST:
@@ -598,14 +611,53 @@ func start_random_timer():
 	timer.start(wait_time)
 
 func _on_timer_timeout():
+	if play_sound.playing:
+		await play_sound.finished
 	play_sound.stream = randsounds.pick_random()
 	play_sound.play()
 	start_random_timer()
+
+func print_welcome_banner():
+	var cyan = "\u001b[36m"
+	var gray = "\u001b[90m"
+	var reset = "\u001b[0m"
+	
+	var banner = """
+%s                                                                         
+  ▄▄▄▄▄▄▄           ▄▄              ▄▄▄▄▄▄▄                               
+ ███▀▀▀▀▀           ██        ██   █████▀▀▀                               
+ ███       ▄███▄ ▄████ ▄███▄ ▀██▀▀  ▀████▄   ▀▀█▄ ██ ██ ▄████ ▄█▀█▄ ████▄ 
+ ███  ███▀ ██ ██ ██ ██ ██ ██  ██      ▀████ ▄█▀██ ██ ██ ██ ██ ██▄█▀ ██ ▀▀ 
+ ▀██████▀  ▀███▀ ▀████ ▀███▀  ██   ███████▀ ▀█▄██ ▀██▀█ ▀████ ▀█▄▄▄ ██    
+                                                           ██             
+                                                         ▀▀▀              %s
+	""" % [cyan, reset]
+
+	print(banner)
+	print("")
+
 
 func add_log(text: String, color: String = "white"):
 	var time = Time.get_time_dict_from_system()
 	var timestamp = "[%02d:%02d:%02d] " % [time.hour, time.minute, time.second]
 	log_box.append_text("[color=gray]" + timestamp + "[/color][color=" + color + "]" + text + "[/color]\n")
+	if is_instance_valid(web_server) and web_server.is_running:
+		var html_log = '<span style="color: gray;">%s</span><span style="color: %s;">%s</span>' % [timestamp, color, text]
+		web_server.add_log_to_web(html_log)
+	var ansi_color = "\u001b[0m"
+	match color:
+		"red": ansi_color = "\u001b[31m"
+		"green": ansi_color = "\u001b[32m"
+		"orange", "yellow": ansi_color = "\u001b[33m"
+		"blue": ansi_color = "\u001b[34m"
+		"gray": ansi_color = "\u001b[90m"
+	print("\u001b[90m" + timestamp + "\u001b[0m" + ansi_color + text + "\u001b[0m")
+	if color == "red":
+		if settings_allsoundoff == false:
+			if play_sound.playing:
+				await play_sound.finished
+			play_sound.stream = load("res://sounds/event_error.mp3")
+			play_sound.play()
 
 func _on_refresh_pressed():
 	tree.clear()
@@ -952,6 +1004,9 @@ func _on_start_download_pressed() -> void:
 		active_downloads = 0
 		toggle_proxy_settings()
 		add_log("All downloads cancelled!", "red")
+		if settings_allsoundoff == false:
+			play_sound.stream = load("res://sounds/event_download-stop.mp3")
+			play_sound.play()
 		btn_start_download.text = "Start Download"
 		btn_start_download.self_modulate = Color.WHITE
 		btn_open_sfdl.disabled = false
@@ -960,6 +1015,9 @@ func _on_start_download_pressed() -> void:
 	download_stop_timestamp = 0
 	dowloads_canceled = false
 	add_log("Downloading ...", "yellow")
+	if settings_allsoundoff == false:
+		play_sound.stream = load("res://sounds/event_download-start.mp3")
+		play_sound.play()
 	btn_start_download.text = "Stop Download"
 	btn_start_download.self_modulate = Color(0.875, 0.072, 0.0, 1.0)
 	btn_open_sfdl.disabled = true
@@ -1265,7 +1323,7 @@ func _on_use_proxy_button_toggled(toggled_on: bool) -> void:
 	save_settings("proxy_use", toggled_on)
 	
 func save_all_proxy_fields():
-	var www_port = int($ControlSettings/ScrollContainer/VBoxContainer/VBoxContainer/HBoxContainer4/ProxyPort.value)
+	var www_port = int($ControlSettings/ScrollContainer/VBoxContainer/VBoxContainer2/HBoxContainer/WebserverPort.value)
 	settings_webserver_port = www_port
 	save_settings("webserver_port", settings_webserver_port)
 	var p_host = $ControlSettings/ScrollContainer/VBoxContainer/VBoxContainer/HBoxContainer3/ProxyHost.text
@@ -1547,7 +1605,7 @@ func _on_shutdown_cancelled():
 func webserver_start():
 	web_server = HttpServer.new()
 	web_server.log_requested.connect(add_log)
-	web_server.port = 8080
+	web_server.port = settings_webserver_port
 	if local_download_destination.is_empty():
 		local_download_destination = OS.get_system_dir(OS.SYSTEM_DIR_DOWNLOADS)
 		if local_download_destination == "":
@@ -1561,19 +1619,20 @@ func webserver_stop():
 		web_server.queue_free()
 		
 func _on_webserver_button_toggled(toggled_on: bool) -> void:
+	var www_port = int($ControlSettings/ScrollContainer/VBoxContainer/VBoxContainer2/HBoxContainer/WebserverPort.value)
+	settings_webserver_port = www_port
 	if toggled_on:
 		settings_webserver_run = true
 		$ControlSettings/ScrollContainer/VBoxContainer/VBoxContainer2/WebserverButton.button_pressed = true
-		$ControlSettings/ScrollContainer/VBoxContainer/VBoxContainer/HBoxContainer4/ProxyPort.editable = false
-		$ControlSettings/ScrollContainer/VBoxContainer/VBoxContainer/HBoxContainer4/ProxyPort.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		$ControlSettings/ScrollContainer/VBoxContainer/VBoxContainer2/HBoxContainer/WebserverPort.editable = false
+		$ControlSettings/ScrollContainer/VBoxContainer/VBoxContainer2/HBoxContainer/WebserverPort.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		webserver_start()
 	else:
 		settings_webserver_run = true
-		$ControlSettings/ScrollContainer/VBoxContainer/VBoxContainer/HBoxContainer4/ProxyPort.editable = true
-		$ControlSettings/ScrollContainer/VBoxContainer/VBoxContainer/HBoxContainer4/ProxyPort.mouse_filter = Control.MOUSE_FILTER_STOP
+		$ControlSettings/ScrollContainer/VBoxContainer/VBoxContainer2/HBoxContainer/WebserverPort.editable = true
+		$ControlSettings/ScrollContainer/VBoxContainer/VBoxContainer2/HBoxContainer/WebserverPort.mouse_filter = Control.MOUSE_FILTER_STOP
 		$ControlSettings/ScrollContainer/VBoxContainer/VBoxContainer2/WebserverButton.button_pressed = false
 		webserver_stop()
-	var www_port = int($ControlSettings/ScrollContainer/VBoxContainer/VBoxContainer/HBoxContainer4/ProxyPort.value)
 	save_settings("webserver_run", toggled_on)
 	save_settings("webserver_port", www_port)
 

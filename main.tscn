@@ -13,6 +13,7 @@
 [ext_resource type="Texture2D" uid="uid://y1d1nns2y8el" path="res://icons/backarrow.png" id="8_5vw27"]
 [ext_resource type="Texture2D" uid="uid://4n25msk8jj3h" path="res://icons/rar.png" id="9_4c57u"]
 [ext_resource type="Texture2D" uid="uid://cqbmn81cyd5qx" path="res://icons/7-Zip.png" id="10_efxa6"]
+[ext_resource type="Script" uid="uid://dqb1u7f4bjk4j" path="res://mobile_keep_screen_on.gd" id="12_w48qg"]
 
 [node name="GodotSauger" type="Node3D" unique_id=1760449315]
 script = ExtResource("1_ig7tw")
@@ -165,6 +166,7 @@ custom_minimum_size = Vector2(0, 200)
 layout_mode = 2
 size_flags_vertical = 3
 allow_search = false
+hide_folding = true
 enable_recursive_folding = false
 enable_drag_unfolding = false
 hide_root = true
@@ -231,6 +233,11 @@ text = "Fullscreen "
 [node name="AllSoundOff" type="CheckButton" parent="ControlSettings/ScrollContainer/VBoxContainer/VBoxContainer2" unique_id=58761242]
 layout_mode = 2
 text = "All sound effects off "
+
+[node name="MobileKeepScreenOn" type="CheckButton" parent="ControlSettings/ScrollContainer/VBoxContainer/VBoxContainer2" unique_id=679030343]
+layout_mode = 2
+text = "Keep screen on (Android, iOS)"
+script = ExtResource("12_w48qg")
 
 [node name="HSeparator3" type="HSeparator" parent="ControlSettings/ScrollContainer/VBoxContainer/VBoxContainer2" unique_id=696262781]
 layout_mode = 2
