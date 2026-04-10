@@ -2,6 +2,7 @@
 
 [ext_resource type="Script" uid="uid://chfkdlomt2scp" path="res://main.gd" id="1_ig7tw"]
 [ext_resource type="PackedScene" uid="uid://7xgexea4ayh7" path="res://GodotSaugerText.glb" id="2_0xm2m"]
+[ext_resource type="PackedScene" uid="uid://3icg8ffyuc1o" path="res://hero_dance.glb" id="2_vivmo"]
 [ext_resource type="Script" uid="uid://b6h7v8ma8vom4" path="res://omni_light_3d.gd" id="3_h2yge"]
 [ext_resource type="Script" uid="uid://dvoedexp8xis0" path="res://log_box_handle.gd" id="4_1bvp3"]
 [ext_resource type="Texture2D" uid="uid://bwk5o4k6vayt2" path="res://icons/folder_sw.png" id="4_lquwl"]
@@ -25,6 +26,9 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.8338451, 0.4946612, -1.392
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.050400045, -0.071965575, -1.5484517)
 script = ExtResource("4_ycdy4")
 
+[node name="hero_dance" parent="." unique_id=24335791 instance=ExtResource("2_vivmo")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.0718014, 0.9482993, -1.2250712)
+
 [node name="OmniLight3D" type="OmniLight3D" parent="." unique_id=1565862079]
 light_color = Color(1, 0.80784315, 0.18039216, 1)
 shadow_enabled = true
@@ -43,7 +47,7 @@ light_energy = 0.2
 omni_range = 0.04
 
 [node name="Camera3D" type="Camera3D" parent="." unique_id=11858519]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 2)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.16092026, 2)
 current = true
 script = ExtResource("5_dg77c")
 

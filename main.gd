@@ -7,6 +7,9 @@ var video_player : VideoStreamPlayer
 const HttpServer = preload("res://WebServer.gd")
 var web_server: Node
 
+@onready var anim_player: AnimationPlayer = $hero_dance/AnimationPlayer
+@onready var skeleton: Skeleton3D = $hero_dance/Armature/Skeleton3D
+
 @onready var timer = $Timer
 @onready var music_player = $MusicPlayer
 @onready var play_sound = $PlaySounds
@@ -128,10 +131,6 @@ func _ready():
 			if arg.get_extension().to_lower() == "sfdl":
 				_on_sfdl_file_selected(arg)
 				break
-	#print(" ")
-	#print("========================================")
-	#print("   GodotSauger v" + gs_version)
-	#print("========================================")
 	print_welcome_banner()
 	get_tree().get_root().files_dropped.connect(_on_files_dropped)
 	load_window_settings()
@@ -471,6 +470,13 @@ func _ready():
 	Extractor.extraction_finished.connect(_on_extractor_finished)
 	_on_refresh_pressed() # reset files list
 	_on_auto_timer_timeout() # auto downloads
+	var mesh_node = $hero_dance/Armature/Skeleton3D/char1
+	if mesh_node and mesh_node is MeshInstance3D:
+		var old_mat = mesh_node.get_active_material(0)
+		var new_mat = StandardMaterial3D.new()
+		if old_mat:
+			new_mat.albedo_texture = old_mat.get("albedo_texture")
+		mesh_node.material_override = new_mat
 
 func _input(event):
 	if event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
@@ -512,6 +518,7 @@ func _start_main_app():
 		video_player.queue_free()
 	if settings_allsoundoff == false:
 		_play_random_song()
+		start_dance()
 	else:
 		btn_music.icon = ICON_OFF
 	main_ui.visible = true
@@ -619,9 +626,7 @@ func _on_timer_timeout():
 
 func print_welcome_banner():
 	var cyan = "\u001b[36m"
-	var gray = "\u001b[90m"
 	var reset = "\u001b[0m"
-	
 	var banner = """
 %s                                                                         
   ▄▄▄▄▄▄▄           ▄▄              ▄▄▄▄▄▄▄                               
@@ -1085,6 +1090,7 @@ func _on_dir_selected(dir: String):
 func _on_music_pressed() -> void:
 	if music_player.playing:
 		# music_player.stop()
+		stop_dance()
 		var bus_index = AudioServer.get_bus_index("Music")
 		AudioServer.set_bus_mute(bus_index, true)
 		music_player.stream_paused = true
@@ -1097,6 +1103,7 @@ func _on_music_pressed() -> void:
 	else:
 		if music_player.stream:
 			# music_player.play()
+			start_dance()
 			var bus_index = AudioServer.get_bus_index("Music")
 			AudioServer.set_bus_mute(bus_index, false)
 			music_player.stream_paused = false
@@ -1199,6 +1206,7 @@ func _on_all_sound_off_toggled(toggled_on: bool) -> void:
 		btn_music.disabled = true
 		btn_music.icon = ICON_OFF
 		timer.stop()
+		stop_dance()
 	else:
 		settings_allsoundoff = false
 		save_settings("settings_allsoundoff", false)
@@ -1208,6 +1216,7 @@ func _on_all_sound_off_toggled(toggled_on: bool) -> void:
 		_play_random_song()
 		play_sound.stream = load("res://sounds/event_music_on.mp3")
 		play_sound.play()
+		start_dance()
 
 func _on_open_rar_pressed() -> void:
 	OS.shell_open("https://www.rarlab.com/rar_add.htm")
@@ -1635,6 +1644,28 @@ func _on_webserver_button_toggled(toggled_on: bool) -> void:
 		webserver_stop()
 	save_settings("webserver_run", toggled_on)
 	save_settings("webserver_port", www_port)
+
+func start_dance():
+	for child in $hero_dance.find_children("*", "MeshInstance3D"):
+		child.transparency = 0.0
+	$hero_dance.visible = true
+	anim_player.play("Armature|All_Night_Dance|baselayer")
+
+func stop_dance():
+	var tween = create_tween()
+	for child in $hero_dance.find_children("*", "MeshInstance3D"):
+		tween.parallel().tween_property(child, "transparency", 1.0, 0.5)
+	await tween.finished
+	$hero_dance.visible = false
+	anim_player.stop()
+	'''
+	if skeleton:
+		for i in skeleton.get_bone_count():
+			var rest_tr = skeleton.get_bone_rest(i)
+			skeleton.set_bone_pose_position(i, rest_tr.origin)
+			skeleton.set_bone_pose_rotation(i, rest_tr.basis.get_rotation_quaternion())
+			skeleton.set_bone_pose_scale(i, rest_tr.basis.get_scale())
+	'''
 
 func _cleanup_and_quit():
 	FtpClient.abort_all = true
