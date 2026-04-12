@@ -309,44 +309,50 @@ func _wait_response(s: StreamPeerTCP) -> String:
 
 func parse_ftp_listing(raw_data: String) -> Array:
 	var items = []
-	var regex_unix = RegEx.new()
-	regex_unix.compile("^([dl\\-])[rwx\\-]{9}[\\s\\d]+?\\s+(\\d+)\\s+(\\w{3}\\s+\\d+\\s+[\\d:]+)\\s+(.*)$")
-	var regex_win = RegEx.new()
-	regex_win.compile("^(\\d{2}-\\d{2}-\\d{2})\\s+(\\d{2}:\\d{2}[AP]M)\\s+(<DIR>|\\d+)\\s+(.*)$")
+	var months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+	var regex_os = RegEx.new()
+	regex_os.compile("^(\\d{2}-\\d{2}-\\d{2})\\s+(\\d{2}:\\d{2}[AP]M)\\s+(<DIR>|\\d+)\\s+(.*)$")
 	for line in raw_data.split("\n"):
 		line = line.strip_edges()
-		if line == "": 
+		if line == "" or (line.length() >= 3 and line.substr(0, 3).is_valid_int()):
 			continue
-		if line.length() >= 3 and line.substr(0, 3).is_valid_int():
-			var parts = line.split(" ")
-			if parts.size() > 0 and parts[0].length() == 3:
-				continue
-		var res_unix = regex_unix.search(line)
-		if res_unix:
-			var s = res_unix.get_string(2).to_int()
-			var item = {
-				"name": res_unix.get_string(4).strip_edges(),
-				"size": s,
-				"is_dir": res_unix.get_string(1) == "d",
-				"size_human": format_file_size(s),
-				"status": 0
-			}
-			items.append(item)
-			continue
-		var res_win = regex_win.search(line)
+		var res_win = regex_os.search(line)
 		if res_win:
 			var size_or_dir = res_win.get_string(3)
 			var is_dir = size_or_dir == "<DIR>"
 			var s = 0 if is_dir else size_or_dir.to_int()
-			var item = {
+			items.append({
 				"name": res_win.get_string(4).strip_edges(),
 				"size": s,
 				"is_dir": is_dir,
 				"size_human": "DIR" if is_dir else format_file_size(s),
 				"status": 0
-			}
-			items.append(item)
+			})
 			continue
+		if line.begins_with("d") or line.begins_with("-") or line.begins_with("l"):
+			var parts = []
+			for p in line.split(" ", false):
+				parts.append(p)
+			if parts.size() >= 6:
+				var date_index = -1
+				for i in range(1, parts.size() - 2):
+					if months.has(parts[i]):
+						date_index = i
+						break
+				if date_index != -1:
+					var name_start_index = date_index + 3
+					var file_name = ""
+					for i in range(name_start_index, parts.size()):
+						file_name += parts[i] + (" " if i < parts.size() - 1 else "")
+					var s = parts[date_index - 1].to_int()
+					items.append({
+						"name": file_name.strip_edges(),
+						"size": s,
+						"is_dir": line.begins_with("d"),
+						"size_human": "DIR" if line.begins_with("d") else format_file_size(s),
+						"status": 0
+					})
+					continue
 		log_requested.emit.call_deferred("[FTP] (LIST) Unknown format: " + line)
 	return items
 
